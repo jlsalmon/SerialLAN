@@ -5,15 +5,12 @@ import gnu.io.*;
 import java.io.*;
 
 /**
- * SerialLAN.java
+ * SerialPortHandler.java
  * 
- * @author Justin Lewis Salmon
- * @student_id 10000937
+ * @author Justin Lewis Salmon 10000937
+ * @author Mokdeep Sandhu 10029172
  * 
- *             Represents a citation between papers where the endpoint of the
- *             connection is the paper that is making the reference, i.e. the
- *             paper at the end of this connection is referencing me, so i'm
- *             going to store it as a citation.
+ *         Deals with opening, reading from and writing to the serial port.
  */
 class SerialPortHandler {
 
@@ -28,19 +25,19 @@ class SerialPortHandler {
 	public SerialPortHandler() {
 
 		/* Discover OS type so correct port names are used */
-		SerialLAN.dterminal.println("Checking your OS...");
+		SerialLAN.dterm.println("Checking your OS...");
 		if (isWindows()) {
 			os = "win";
-			SerialLAN.dterminal.println("OS: Windows");
+			SerialLAN.dterm.println("OS: Windows");
 			PORT1 = "COM1";
 			PORT2 = "COM2";
 		} else if (isUnix()) {
 			os = "unix";
-			SerialLAN.dterminal.println("OS: Unix or Linux");
+			SerialLAN.dterm.println("OS: Unix or Linux");
 			PORT1 = "/dev/ttyS60";
 			PORT2 = "/dev/ttyS50";
 		} else {
-			SerialLAN.dterminal.println("Unsupported OS!");
+			SerialLAN.dterm.println("Unsupported OS!");
 		}
 
 		/*
@@ -48,14 +45,14 @@ class SerialPortHandler {
 		 * ie. availability, and then open/closing. getPortIdentifiers() returns
 		 * an enumeration type
 		 */
-		SerialLAN.dterminal.println("Looking for ports...");
+		SerialLAN.dterm.println("Looking for ports...");
 		portList = CommPortIdentifier.getPortIdentifiers();
 
 		while (portList.hasMoreElements()) {
 
 			/* enumeration refers to Objects - must be cast to required one */
 			portId = portList.nextElement();
-			SerialLAN.dterminal.print("" + portId.getName());
+			SerialLAN.dterm.print("" + portId.getName());
 
 			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
 
@@ -66,9 +63,14 @@ class SerialPortHandler {
 						 * open using "java lan" as application and 1sec
 						 * blocking time
 						 */
-						serialPort = (SerialPort) portId.open("java lan", 2000);
-						serialPort.setSerialPortParams(9600,
-								SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
+						serialPort =
+								(SerialPort) portId.open(
+										"java lan",
+										2000);
+						serialPort.setSerialPortParams(
+								9600,
+								SerialPort.DATABITS_8,
+								SerialPort.STOPBITS_1,
 								SerialPort.PARITY_NONE);
 
 						/* stop blocking, immediate return */
@@ -81,22 +83,22 @@ class SerialPortHandler {
 						/* set data streams */
 						outputStream = serialPort.getOutputStream();
 						inputStream = serialPort.getInputStream();
-						SerialLAN.dterminal.print(" port opened!");
+						SerialLAN.dterm.print(" port opened!");
 					} catch (IOException e) {
 					} catch (UnsupportedCommOperationException e) {
-						SerialLAN.dterminal.println("Unsupported use...");
+						SerialLAN.dterm.println("Unsupported use...");
 						System.exit(0);
 					} catch (PortInUseException e) {
-						SerialLAN.dterminal.println(" port in use...");
+						SerialLAN.dterm.println(" port in use...");
 						PORT1 = PORT2;
 					}
 				}
 			}
-			SerialLAN.dterminal.println("");
+			SerialLAN.dterm.println("");
 		}
-		SerialLAN.dterminal.println("Finished checking!");
+		SerialLAN.dterm.println("Finished checking!");
 		if (serialPort == null) {
-			SerialLAN.dterminal.println("No " + PORT1 + " port found...");
+			SerialLAN.dterm.println("No " + PORT1 + " port found...");
 			System.exit(0);
 		}
 
@@ -135,8 +137,8 @@ class SerialPortHandler {
 		for (int i = 0; i < ppacket.length; i++) {
 			putChar(ppacket[i]);
 		}
-		SerialLAN.dterminal.print("Packet sent: ");
-		SerialLAN.dterminal.println(ppacket);
+		SerialLAN.dterm.print("Packet sent: ");
+		SerialLAN.dterm.println(ppacket);
 		/* failure handled in above exception */
 		return 0;
 	}

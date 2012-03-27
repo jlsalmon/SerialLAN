@@ -5,21 +5,23 @@ import java.util.Random;
 /**
  * SerialLAN.java
  * 
- * @author Justin Lewis Salmon
- * @student_id 10000937
+ * @author Justin Lewis Salmon 10000937
+ * @author Mokdeep Sandhu 10029172
  * 
- *             
+ *         Main controller class, everything happens here. There are too many
+ *         static variables, and the whole thing is written fairly poorly, but
+ *         it works.
  */
 public class SerialLAN {
 
 	private static SerialPortHandler sio;
-	private static Term terminal;
-	public static DebugTerm dterminal;
+	private static Term term;
+	public static DebugTerm dterm;
 	/* Keyboard user input state index */
 	private static int userInputState;
 	/* Keyboard states */
-	private static final int LOGIN = 0, ADDRESS_PENDING = 1, MENU = 2,
-			GET_ADDRESS = 3, INPUT_MESSAGE = 4, LOGOUT = 5;
+	private static final int LOGIN = 0, ADDRESS_PENDING = 1,
+			MENU = 2, GET_ADDRESS = 3, INPUT_MESSAGE = 4, LOGOUT = 5;
 	/* The char the user types in the terminal */
 	private static char key = 0;
 
@@ -32,7 +34,8 @@ public class SerialLAN {
 	private static int pendTableIndex = 0;
 	private static final int PENDTABLE_SIZE = 26;
 	/* An array of PendtableRecords = the actual pendtable */
-	private static PendtableRecord[] pendtable = new PendtableRecord[PENDTABLE_SIZE];
+	private static PendtableRecord[] pendtable =
+			new PendtableRecord[PENDTABLE_SIZE];
 
 	/* My login ID */
 	private static char myaddr = 0;
@@ -47,8 +50,8 @@ public class SerialLAN {
 	private static char rxpacket[] = new char[PACKETSIZE];
 	private static char txpacket[] = new char[PACKETSIZE];
 	/* Positions of special characters in a packet */
-	private static final int SOM = 0, DEST = 1, SRC = 2, TYPE = 3, CHKSM = 14,
-			EOM = 15;
+	private static final int SOM = 0, DEST = 1, SRC = 2, TYPE = 3,
+			CHKSM = 14, EOM = 15;
 
 	private static int showMenu;
 	private static char unique;
@@ -60,9 +63,9 @@ public class SerialLAN {
 	public static void main(String[] args) {
 
 		/* Create term window for keyboard input */
-		terminal = new Term();
+		term = new Term();
 		/* Create debug terminal, hide initially */
-		dterminal = new DebugTerm();
+		dterm = new DebugTerm();
 		/* Open the serial port */
 		sio = new SerialPortHandler();
 		/* Initialise local packets */
@@ -73,7 +76,7 @@ public class SerialLAN {
 		/*
 		 * User just started the program, so logging in will be the first task
 		 */
-		terminal.print("To login, key in a character (A-Z): ");
+		term.print("To login, key in a character (A-Z): ");
 		userInputState = LOGIN;
 
 		/* Initialise the pendtable */
@@ -90,20 +93,23 @@ public class SerialLAN {
 
 	}
 
+	/**
+	 * Main non-blocking user input/output task.
+	 */
 	private static void userIO() {
 
 		switch (userInputState) {
 		case LOGIN:
 			/* Check for key typed */
-			if (terminal.getkbhit()) {
-				key = Character.toUpperCase(terminal.getChar());
+			if (term.getkbhit()) {
+				key = Character.toUpperCase(term.getChar());
 				/* Check ID is valid */
 				if (key >= 'A' && key <= 'Z') {
-					terminal.putChar(key);
-					terminal.putChar('\n');
+					term.putChar(key);
+					term.putChar('\n');
 					if (pendtable[key - 'A'].getLoggedin() == 1) {
-						terminal.print("Node ID in use. Try another: ");
-						terminal.clearline();
+						term.print("Node ID in use. Try another: ");
+						term.clearline();
 						break;
 					} else {
 						login();
@@ -111,8 +117,8 @@ public class SerialLAN {
 					/* Move to next state */
 					userInputState = ADDRESS_PENDING;
 				} else {
-					terminal.print("\nInvalid input char. [A-Z]: ");
-					terminal.clearline();
+					term.print("\nInvalid input char. [A-Z]: ");
+					term.clearline();
 					break;
 				}
 			}
@@ -124,12 +130,12 @@ public class SerialLAN {
 			 */
 			if (pendtable[myaddr - 'A'].getPending() == 0
 					&& pendtable[myaddr - 'A'].getLoggedin() == 0) {
-				terminal.print("Seems we're all alone...");
+				term.print("Seems we're all alone...");
 				userInputState = LOGIN;
 			}
 			if (pendtable[myaddr - 'A'].getLoggedin() == -1) {
-				terminal.print("Your node id is now set to: " + myaddr);
-				terminal.clearline();
+				term.print("Your node id is now set to: " + myaddr);
+				term.clearline();
 				/* Move to next state */
 				userInputState = MENU;
 				showMenu = 1;
@@ -139,17 +145,17 @@ public class SerialLAN {
 			/* Display menu options */
 			if (showMenu == 1) {
 				showMenu = 0;
-				terminal
+				term
 						.print("\nOptions: (D)estination, (S)end, (C)ancel, (L)ogout");
 			}
 			/* Poll for instruction char */
-			if (terminal.getkbhit()) {
-				key = Character.toUpperCase(terminal.getChar());
-				terminal.clearline();
+			if (term.getkbhit()) {
+				key = Character.toUpperCase(term.getChar());
+				term.clearline();
 				switch (key) {
 				case 'D':
 					/* Selecting a destination */
-					terminal.print("\nEnter destination node ID [A-Z]: ");
+					term.print("\nEnter destination node ID [A-Z]: ");
 					/* moving on */
 					userInputState = GET_ADDRESS;
 					break;
@@ -158,18 +164,20 @@ public class SerialLAN {
 					if (kbdpacket[CHKSM] != ' ') {
 						/* enter record in pendtable for sending */
 						sio.sendpacket(kbdpacket);
-						pendtable[kbdpacket[DEST] - 'A'].setPacket(kbdpacket);
-						pendtable[kbdpacket[DEST] - 'A'].setPending(4);
+						pendtable[kbdpacket[DEST] - 'A']
+								.setPacket(kbdpacket);
+						pendtable[kbdpacket[DEST] - 'A']
+								.setPending(4);
 						pendtable[kbdpacket[DEST] - 'A']
 								.setDelay(PendtableRecord.DELAY);
-						terminal.print("\nMessage sent!");
-						terminal.clearline();
+						term.print("\nMessage sent!");
+						term.clearline();
 						/* Clear the packet for next use! */
 						kbdpacket = clearpacket(kbdpacket);
 					} else {
-						terminal
+						term
 								.print("\nNo message to send, or already sent.");
-						terminal.clearline();
+						term.clearline();
 					}
 					/* Back to menu */
 
@@ -178,11 +186,12 @@ public class SerialLAN {
 					/* Cancel sending of packet */
 					if (kbdpacket[CHKSM] != ' ') {
 						kbdpacket = clearpacket(kbdpacket);
-						terminal.print("\nMessage cancelled. Packet cleared.");
-						terminal.clearline();
+						term
+								.print("\nMessage cancelled. Packet cleared.");
+						term.clearline();
 					} else {
-						terminal.print("\nNothing to do...");
-						terminal.clearline();
+						term.print("\nNothing to do...");
+						term.clearline();
 					}
 					/* Back to menu */
 					userInputState = MENU;
@@ -190,22 +199,23 @@ public class SerialLAN {
 					break;
 				case 'L':
 					/* Take user to logout state */
-					terminal.print("\nAre you sure you want to log out? Y/N: ");
-					terminal.clearline();
+					term
+							.print("\nAre you sure you want to log out? Y/N: ");
+					term.clearline();
 					userInputState = LOGOUT;
 					break;
 				default:
-					terminal
+					term
 							.print("\nInvalid choice. (D)est, (S)end, (C)ancel or (L)ogout: ");
-					terminal.clearline();
+					term.clearline();
 					break;
 				}
 			}
 			break;
 		case GET_ADDRESS:
-			if (terminal.getkbhit()) {
-				key = Character.toUpperCase(terminal.getChar());
-				terminal.putChar(key);
+			if (term.getkbhit()) {
+				key = Character.toUpperCase(term.getChar());
+				term.putChar(key);
 				/* Check node is valid */
 				if (key >= 'A' && key <= 'Z') {
 					if (pendtable[key - 'A'].getLoggedin() != 0) {
@@ -215,29 +225,30 @@ public class SerialLAN {
 						kbdpacket[DEST] = key;
 						kbdpacket[TYPE] = 'D';
 						/* moving on */
-						terminal.print("\nEnter message (10 chars max): ");
-						terminal.clearline();
+						term
+								.print("\nEnter message (10 chars max): ");
+						term.clearline();
 						userInputState = INPUT_MESSAGE;
 					} else {
-						terminal
+						term
 								.print("\nNode not logged in. Choose another. [A-Z]: ");
-						terminal.clearline();
+						term.clearline();
 					}
 				} else {
-					terminal.print("\nInvalid node. [A-Z]: ");
-					terminal.clearline();
+					term.print("\nInvalid node. [A-Z]: ");
+					term.clearline();
 				}
 			}
 			break;
 		case INPUT_MESSAGE:
-			if (terminal.getkbhit()) {
-				key = terminal.getChar();
+			if (term.getkbhit()) {
+				key = term.getChar();
 
 				if (key == '\n') {
 					payloadBuffer = 0;
 					setchsum(kbdpacket);
-					terminal.print("\nMessage finished. Packet ready.");
-					terminal.clearline();
+					term.print("\nMessage finished. Packet ready.");
+					term.clearline();
 					/* move on */
 					userInputState = MENU;
 					showMenu = 1;
@@ -258,8 +269,9 @@ public class SerialLAN {
 						payloadBuffer--;
 						break;
 					}
-					terminal.print("\n\nMessage limit reached. Packet ready.");
-					terminal.clearline();
+					term
+							.print("\n\nMessage limit reached. Packet ready.");
+					term.clearline();
 					kbdpacket[payloadBuffer + 4] = key;
 					payloadBuffer = 0;
 					setchsum(kbdpacket);
@@ -271,29 +283,29 @@ public class SerialLAN {
 			}
 			break;
 		case LOGOUT:
-			if (terminal.getkbhit()) {
-				key = Character.toUpperCase(terminal.getChar());
-				terminal.putChar(key);
+			if (term.getkbhit()) {
+				key = Character.toUpperCase(term.getChar());
+				term.putChar(key);
 				if (key == 'Y') {
 					logout();
-					terminal.clearline();
+					term.clearline();
 					userInputState = LOGIN;
 
 				} else if (key == 'N') {
 					/* Logout aborted */
-					terminal.println("\nLogout aborted.");
-					terminal.clearline();
+					term.println("\nLogout aborted.");
+					term.clearline();
 					userInputState = MENU;
 					showMenu = 1;
 				} else {
 					/* Invalid */
-					terminal.print("\nInvalid choice. [Y/N]: ");
-					terminal.clearline();
+					term.print("\nInvalid choice. [Y/N]: ");
+					term.clearline();
 				}
 			}
 			break;
 		default: /* should never get here */
-			dterminal.println("\nError in keyboard user state machine!!");
+			dterm.println("\nError in keyboard user state machine!!");
 			break;
 		}
 	}
@@ -319,21 +331,21 @@ public class SerialLAN {
 			if (rxpacket[EOM] == '}') {
 				receiverState = ARRIVED;
 			} else {
-				dterminal.print("\nrx packet error...");
+				dterm.print("\nrx packet error...");
 				receiverState = WAITING;
 			}
 			break;
 		case ARRIVED:
 			/* check sum */
-			dterminal.print("\nPacket received: ");
-			dterminal.println(rxpacket);
+			dterm.print("\nPacket received: ");
+			dterm.println(rxpacket);
 			if (chksm(rxpacket) == (int) rxpacket[CHKSM]) {
 				receiverState = DECODING;
 			} else {
 				if (myaddr != 0) {
 					nak(rxpacket);
 				}
-				dterminal.println("\nBad checksum detected!");
+				dterm.println("\nBad checksum detected!");
 				receiverState = DECODING;
 			}
 			break;
@@ -351,11 +363,11 @@ public class SerialLAN {
 							pendtable[myaddr - 'A'].setPending(0);
 							pendtable[myaddr - 'A'].clearPacket();
 							pendtable[myaddr - 'A'].setLoggedin(-1);
-							terminal.println("\nLogged in successfully.");
+							term.println("\nLogged in successfully.");
 						} else {
-							terminal
+							term
 									.print("\nLogin conflict detected! Try another ID: ");
-							terminal.clearline();
+							term.clearline();
 							userInputState = LOGIN;
 						}
 						break;
@@ -365,8 +377,8 @@ public class SerialLAN {
 						break;
 					case 'D':
 						/* test message, del packet, return ACK */
-						terminal.println("\nTest message received.");
-						terminal.println(rxpacket);
+						term.println("\nTest message received.");
+						term.println(rxpacket);
 						ack(rxpacket);
 						pendtable[myaddr - 'A'].clearPacket();
 						rxpacket = clearpacket(rxpacket);
@@ -376,14 +388,15 @@ public class SerialLAN {
 						pendtable[myaddr - 'A'].setPending(0);
 						pendtable[myaddr - 'A'].clearPacket();
 						rxpacket = clearpacket(rxpacket);
-						dterminal.print("\nPacket acknowledged.");
+						dterm.print("\nPacket acknowledged.");
 						break;
 					case 'N':
 						/* retransmit pending table entry */
 						pendtable[myaddr - 'A'].setPacket(rxpacket);
 						pendtable[myaddr - 'A'].setPending(5);
-						pendtable[myaddr - 'A'].setDelay(PendtableRecord.DELAY);
-						dterminal.print("\nBad packet received!");
+						pendtable[myaddr - 'A']
+								.setDelay(PendtableRecord.DELAY);
+						dterm.print("\nBad packet received!");
 						rxpacket = clearpacket(rxpacket);
 						break;
 					case 'X':
@@ -391,8 +404,9 @@ public class SerialLAN {
 						pendtable[myaddr - 'A'].setLoggedin(0);
 						pendtable[myaddr - 'A'].clearPacket();
 						myaddr = 0;
-						terminal.println("Logged out successfully.\n");
-						terminal.print("To login, key in a character (A-Z): ");
+						term.println("Logged out successfully.\n");
+						term
+								.print("To login, key in a character (A-Z): ");
 						rxpacket = clearpacket(rxpacket);
 						userInputState = LOGIN;
 						break;
@@ -422,7 +436,7 @@ public class SerialLAN {
 						pendtable[rxpacket[SRC] - 'A'].setPending(0);
 						pendtable[rxpacket[SRC] - 'A'].clearPacket();
 						rxpacket = clearpacket(rxpacket);
-						dterminal.print("\nAcknowledgement received.");
+						dterm.print("\nAcknowledgement received.");
 						userInputState = MENU;
 						showMenu = 1;
 						break;
@@ -450,7 +464,8 @@ public class SerialLAN {
 						break;
 					case 'R':
 						/* error, where has he gone now? */
-						pendtable[rxpacket[DEST] - 'A'].setLoggedin(0);
+						pendtable[rxpacket[DEST] - 'A']
+								.setLoggedin(0);
 						rxpacket = clearpacket(rxpacket);
 						break;
 					case 'D':
@@ -482,11 +497,14 @@ public class SerialLAN {
 						/* re-tx packet, update pending, then send R */
 						if (myaddr != 0) {
 							sio.sendpacket(rxpacket);
-							pendtable[rxpacket[SRC] - 'A'].setLoggedin(1);
+							pendtable[rxpacket[SRC] - 'A']
+									.setLoggedin(1);
 							loginReply(rxpacket[SRC]);
 						} else {
-							pendtable[rxpacket[DEST] - 'A'].setPacket(rxpacket);
-							pendtable[rxpacket[SRC] - 'A'].setLoggedin(1);
+							pendtable[rxpacket[DEST] - 'A']
+									.setPacket(rxpacket);
+							pendtable[rxpacket[SRC] - 'A']
+									.setLoggedin(1);
 						}
 						break;
 					case 'R':
@@ -520,7 +538,7 @@ public class SerialLAN {
 			break;
 		/* End of decoding block */
 		default:
-			dterminal.print("\nError in reciever state machine.");
+			dterm.print("\nError in reciever state machine.");
 			break;
 		}
 
@@ -538,28 +556,27 @@ public class SerialLAN {
 		/* check if message to send */
 		if (pendtable[pendTableIndex].getPending() > 0) {
 			/* Start of countdown? */
-			if (pendtable[pendTableIndex].getDelay() == PendtableRecord.DELAY) { 
+			if (pendtable[pendTableIndex].getDelay() == PendtableRecord.DELAY) {
 				/* actually send the packet on this attempt */
 				sio.sendpacket(pendtable[pendTableIndex].getPacket());
 			}
 			pendtable[pendTableIndex].decDelay();
 
-			if (pendtable[pendTableIndex].getDelay() == 0) { 
+			if (pendtable[pendTableIndex].getDelay() == 0) {
 				/* Countdown finished */
-				pendtable[pendTableIndex].decPending(); 
+				pendtable[pendTableIndex].decPending();
 				/* any attempts left? */
 				if (pendtable[pendTableIndex].getPending() > 0) {
 					/* Reset countdown */
-					pendtable[pendTableIndex].setDelay(PendtableRecord.DELAY); 
+					pendtable[pendTableIndex]
+							.setDelay(PendtableRecord.DELAY);
 				}
 			}
 		}
 	}
 
-	/*
-	 * @param packet
-	 * 
-	 * @return cleared packet
+	/**
+	 * Re-iniialises a packet to a reusable state.
 	 */
 	public static char[] clearpacket(char[] packet) {
 		char[] p = new char[PACKETSIZE];
@@ -579,8 +596,6 @@ public class SerialLAN {
 	/**
 	 * Calculates the checksum for a packet and adds it to the packet array
 	 * index
-	 * 
-	 * @param packet
 	 */
 	public static void setchsum(char[] packet) {
 		int sum = 0;
@@ -592,10 +607,13 @@ public class SerialLAN {
 		}
 		/* inverse mod 128-bit sum */
 		checksum = (sum % 128);
-		dterminal.println("\nChecksum set as: " + checksum);
+		dterm.println("\nChecksum set as: " + checksum);
 		packet[CHKSM] = (char) checksum;
 	}
 
+	/**
+	 * Decodes the checksum for a packet.
+	 */
 	private static int chksm(char[] rxpacket) {
 		int cs = 0;
 		for (int i = 0; i < PACKETSIZE; i++) {
@@ -605,14 +623,12 @@ public class SerialLAN {
 			cs += rxpacket[i];
 		}
 		cs = (cs % 128);
-		dterminal.println("\nDecoded checksum: " + cs);
+		dterm.println("\nDecoded checksum: " + cs);
 		return cs;
 	}
 
 	/**
 	 * ack - Sends an acknowledgement packet to sender
-	 * 
-	 * @param rxpacket
 	 */
 	private static void ack(char[] rxpacket) {
 		/* Build ack packet */
@@ -622,13 +638,11 @@ public class SerialLAN {
 		txpacket[TYPE] = 'A';
 		setchsum(txpacket);
 		sio.sendpacket(txpacket);
-		dterminal.println("\nPacket acknowledged.");
+		dterm.println("\nPacket acknowledged.");
 	}
 
 	/**
 	 * Sends a nak packet after receiving a bad packet
-	 * 
-	 * @param rxpacket
 	 */
 	private static void nak(char[] rxpacket) {
 		/* Build nak packet */
@@ -640,14 +654,14 @@ public class SerialLAN {
 		/* Send the packet once */
 		pendtable[key - 'A'].setPacket(txpacket);
 		pendtable[key - 'A'].setPending(1);
-		dterminal.println("\nPacket not acknowledged...");
+		dterm.println("\nPacket not acknowledged...");
 	}
 
 	/**
-     *
-     */
+	 * Logs in this user.
+	 */
 	private static void login() {
-		terminal.println("Logging in...");
+		term.println("Logging in...");
 		/* save my login id to check against response from Lan */
 		myaddr = key;
 		/* Clean and build a fresh packet */
@@ -664,12 +678,12 @@ public class SerialLAN {
 		sio.sendpacket(kbdpacket);
 		pendtable[myaddr - 'A'].setPending(4);
 		pendtable[myaddr - 'A'].setDelay(PendtableRecord.DELAY);
-		terminal.println("Waiting for another node to respond...");
+		term.println("Waiting for another node to respond...");
 	}
 
 	/**
-     *
-     */
+	 * Logs this user out..
+	 */
 	private static void logout() {
 		/* Logout confirmation */
 		txpacket = clearpacket(txpacket);
@@ -683,16 +697,14 @@ public class SerialLAN {
 		pendtable[myaddr - 'A'].setPacket(txpacket);
 		pendtable[myaddr - 'A'].setPending(4);
 		pendtable[myaddr - 'A'].setDelay(PendtableRecord.DELAY);
-		terminal.println("\nLogging out...");
+		term.println("\nLogging out...");
 	}
 
 	/**
-	 * Sends a login reply packet when a new node logs in
-	 * 
-	 * @param source
+	 * Sends a login reply packet when a new node logs in.
 	 */
 	private static void loginReply(char source) {
-		dterminal.println("\nReplying to login from " + source + "...");
+		dterm.println("\nReplying to login from " + source + "...");
 		/* Build login reply packet */
 		txpacket = clearpacket(txpacket);
 		txpacket[DEST] = source;
@@ -704,17 +716,15 @@ public class SerialLAN {
 
 	/**
 	 * Prints indexes 4 to 14 to the terminal
-	 * 
-	 * @param rxpacket
 	 */
 	private static void printPayload(char[] rxpacket) {
 		String s = "";
-		terminal.print("\n" + rxpacket[SRC] + " says > ");
+		term.print("\n" + rxpacket[SRC] + " says > ");
 		for (int i = 4; i < PendtableRecord.PACKETSIZE - 2; i++) {
 			s += rxpacket[i];
 		}
 		/* Stripping excess whitespace */
 		s = s.replaceAll("\\s+", " ");
-		terminal.println(s);
+		term.println(s);
 	}
 }
